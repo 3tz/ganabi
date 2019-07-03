@@ -15,8 +15,6 @@ from cross_validation import *
 # suppress TF warnings
 logging.getLogger("tensorflow").setLevel(logging.ERROR)
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
-# Set path
-os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
 class Mlp(object):
     def __init__(self, X_tr, Y_tr, X_va, Y_va, lr, batch_size, decay=.001,
