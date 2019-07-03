@@ -68,6 +68,8 @@ def CV(pkl_path='./data/Hanabi-Full_2_6_150.pkl', agent='rainbow_agent_6',
         random.seed(seed)
         random.shuffle(ind)
 
+    print("Training game indices:", ind[:10])
+
     # Determine the size of the matrices
     n_rows = 0
     for n, i in enumerate(ind): # [n]umber of games gone thru & [i]dx of game
