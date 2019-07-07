@@ -17,30 +17,26 @@ logging.getLogger("tensorflow").setLevel(logging.ERROR)
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 class Mlp(object):
-    def __init__(self, X_tr, Y_tr, X_va, Y_va, lr, batch_size, decay=.001,
-                 activations=[LeakyReLU, LeakyReLU, Softmax],
-                 layer_sizes=[SIZE_OBS_VEC, 256, 128, SIZE_ACT_VEC],
-                 bNorm=True, dropout=False, regularizer=None,
-                 loss='categorical_crossentropy', metrics=['accuracy'],
-                 verbose=1):
-        """ Initialize parameters required for training and testing the network.
+    def __init__(self, X_tr, Y_tr, X_va, Y_va, io_sizes, out_activation, loss,
+                 metrics, lr, batch_size, hl_activations, hl_sizes, decay,
+                 bNorm=False, dropout=False, regularizer=None, verbose=1):
+        """ Initialize parameters required for training & testing the network.
             Structure:
-
                           [Input Layer]
-                      length: @layer_sizes[0]
+                      length: @io_sizes[0]
                                 |
                                 V
                          [Hidden Layer 1]
-                      length: @layer_sizes[1]
+                      length: @hl_sizes[0]
                                 |
                                 V
                                ...
                          [Hidden Layer n]
-                      length: @layer_sizes[n]
+                      length: @hl_sizes[n-1]
                                 |
                                 V
                              [Output]
-                      length: @layer_sizes[-1]
+                      length: @io_sizes[1]
 
         Arguments:
             - X_tr: np.matrix
@@ -53,33 +49,35 @@ class Mlp(object):
                 Validation matrix that contains the actions.
             - lr: int
                 Learning rate of the network.
-            - decay: float, default 0.001
-                Learning rate decay.
+            - io_sizes: tuple
+                Sizes of the input and output layers.
+            - out_activation: func
+                Activation function for the output layer.
+            - loss: str
+                Name of the loss function to be used.
+            - metrics: list
+                List of metrics to be used for training.
             - batch_size: int
                 Size of each mini-batch.
-            - activations: func, default [LeakyReLU, LeakyReLU, Softmax]
-                Activation functions that connect the layers.
-            - layer_sizes: list, default [SIZE_OBS_VEC, 256, 128, SIZE_ACT_VEC]
-                List of the sizes of each layer.
-                Note: the 1st element is a tuple that contains the sizes of the
-                 embedding layers for user IDs and joke IDs correspondingly.
-             - bNorm: boolean, default True
+            - hl_activations: tuple
+                Hidden layer activation functions that connect the layers.
+            - hl_sizes: tuple
+                Sizes of each hidden layer.
+            - decay: float
+                Learning rate decay.
+             - bNorm: boolean, default False
                  Indicates whether to use Batch Normalization on all hiddens.
             - dropout: boolean, default False
                 Incidates whether to use dropout for hidden layers.
             - regularizer: func, default None
                 Regularizer to use.
-            - loss: str, default 'categorical_crossentropy'
-                Name of the loss function to be used.
-            - metrics: list, default ['accuracy']
-                List of metrics to be used for training.
             - verbose: int, default 1
                 Value for `verbose` in keras fit() function.
         Returns:
             - None
         """
 
-        assert(len(layer_sizes) == len(activations) + 1)
+        assert(len(hl_sizes) == len(hl_activations))
 
         self.X_tr = X_tr
         self.Y_tr = Y_tr
@@ -88,8 +86,10 @@ class Mlp(object):
         self.lr = lr
         self.decay = decay
         self.batch_size = batch_size
-        self.activations = activations
-        self.layer_sizes = layer_sizes
+        self.hl_activations = hl_activations
+        self.hl_sizes = hl_sizes
+        self.io_sizes = io_sizes
+        self.out_activation = out_activation
         self.bNorm = bNorm
         self.dropout = dropout
         self.regularizer = regularizer
@@ -103,12 +103,12 @@ class Mlp(object):
         """ Construct model based on attributes
         """
 
-        input = Input(shape=self.layer_sizes[0], name='input')
+        input = Input(shape=self.io_sizes[0], name='input')
 
         layer = input
-        for i in range(1, len(self.layer_sizes)-1):
-            n = self.layer_sizes[i]
-            a = self.activations[i-1]
+        for i in range(len(self.hl_sizes)):
+            n = self.hl_sizes[i]
+            a = self.hl_activations[i]
             # Connect layers
             z = Dense(n, kernel_regularizer=self.regularizer,
                       name='hidden_%d' % i)(layer)
@@ -124,8 +124,8 @@ class Mlp(object):
                 z = Dropout(0.5)(z)
             layer = z
 
-        out = Dense(self.layer_sizes[-1], name='output')(layer)
-        out = self.activations[-1]()(out)
+        out = Dense(self.io_sizes[-1], name='output')(layer)
+        out = self.out_activation()(out)
 
         self.model =  Model(inputs=input, outputs=out)
 
@@ -142,14 +142,18 @@ class Mlp(object):
         """
         if verbose:
             print("Learning Rate:\t", self.lr)
+            print("LR Decay:\t", self.decay)
             print("Batch Size:\t", self.batch_size)
-            print("Activation:\t", self.activations)
-            print("Layer Sizes:\t", self.layer_sizes)
-            print("Dropout:\t", self.dropout)
-            print("Batch Norm:\t", self.bNorm)
             print("Regularizer:\t", self.regularizer)
             print("Loss function:\t", self.loss)
             print("Callbacks:\t", callbacks)
+            self.model.summary()
+            # print("Hidden Acts.:\t", self.hl_activations)
+            # print("I/O Sizes:\t", self.io_sizes)
+            # print("Hidden Sizes:\t", self.hl_sizes)
+            # print("Output Acts.:\t", self.out_activation)
+            # print("Dropout:\t", self.dropout)
+            # print("Batch Norm:\t", self.bNorm)
             print()
 
         self.model.compile(optimizer=Adam(lr=self.lr, decay=self.decay),
