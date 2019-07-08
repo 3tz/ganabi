@@ -5,19 +5,26 @@ from datetime import datetime
 from mlp import *
 from tensorflow.keras.layers import ReLU, PReLU
 
-AGENTS = ['rainbow_agent_' + str(i) for i in range(1, 7)]
-NUM_EPOCH = 150
+# AGENTS = ['rainbow_agent_' + str(i) for i in range(1, 7)]
+# NUM_EPOCH = 150
 
-def mean_acc_agents(n_epoch, **hps):
+def mean_acc_agents(n_epoch, folds=(0, ),
+                    agents=('rainbow_agent_1', 'rainbow_agent_6'),
+                    **hps):
     """ Return mean accuracy across all agents with input hyperparameters.
 
     Arguments:
         - n_epoch: int
             Number of training epochs.
+        - folds: tuple
+            Indices of folds to be used.
+        - agents: tuple
+            Names of the agents to be used to calculate the mean accuracy.
         - hps: any
             Hyperparameters to be passed into Mlp object. They should be all
             arguments in Mlp.__init__() besides X_tr, Y_tr, X_va, Y_va,
             io_sizes, out_activation, loss, metrics, and verbose.
+
     Returns:
         - The average validation accuracy across all agents' best epoch.
     """
@@ -26,7 +33,7 @@ def mean_acc_agents(n_epoch, **hps):
     accs = []
 
     # Build MLP with *args and get best acc for each agent
-    for agent in AGENTS:
+    for agent in agents:
         # Best accuracies of all folds
         fold_accs = []
 
@@ -34,6 +41,9 @@ def mean_acc_agents(n_epoch, **hps):
 
         with open('pkl/cvout_15_{}_current.pkl'.format(agent), 'rb') as f:
             X, Y, masks, ind, cutoffs = pickle.load(f)
+
+        # Use only the specified folds
+        masks = [masks[i] for i in folds]
 
         # For each fold
         for mask in masks:
@@ -144,7 +154,8 @@ def gen_rands(n=2000, range_lr=(0, 1), range_bs=(32, 256), range_nl=(1,3),
         f.write(str(seed) + '\n')
 
 
-def random_search(start, end, path_randparams, path_out='output/hyper_search'):
+def random_search(start, end, path_randparams, num_epoch=150,
+                  path_out='output/hyper_search'):
     """ Run models with hyperparams in given .pkl file and save the accuracy to
         @path_out.
 
@@ -175,7 +186,7 @@ def random_search(start, end, path_randparams, path_out='output/hyper_search'):
         for i in range(start, end):
             print('{}:'.format(i))
             hypers = list_hypers[i]
-            acc = mean_acc_agents(NUM_EPOCH, **hypers)
+            acc = mean_acc_agents(num_epoch, **hypers)
             # Generate hyperparams values into readable .csv supported format
             vals = [*hypers.values()]
             hl_sizes = vals[3].tolist()
