@@ -1,2 +1,8 @@
-Timestamp, n, range_lr, range_bs, range_nl, range_ls, act_funcs, seed
-2264b0, 2000, (0, 1), (32, 256), (1, 3), (25, 500), ['LeakyReLU', 'ReLU', 'ELU', 'PReLU'], 1234
+Timestamp, n, range_lr, range_bs, range_nl, range_ls, act_funcs, range_decay, seed
+2264b0, 2000, (0, 1), (32, 256), (1, 3), (25, 500), ['LeakyReLU', 'ReLU', 'ELU', 'PReLU'], (0.001, 0.001), 1234
+237140, 100, (0, 1), (32, 256), (1, 3), (25, 500), ['LeakyReLU', 'ReLU', 'ELU', 'PReLU'], (0.001, 0.001), None
+23715b, 50, (0, 1), (32, 256), (1, 3), (25, 500), ['LeakyReLU', 'ReLU', 'ELU', 'PReLU'], (0.001, 0.001), None
+23fe5c, 500, (0, 0.05), (32, 256), (1, 3), (25, 500), ['LeakyReLU', 'ReLU', 'ELU', 'PReLU', 'selu'], (0.001, 0.001), None
+2409e4, 500, (0, 0.05), (10, 256), (1, 3), (25, 500), ['LeakyReLU', 'ReLU', 'ELU', 'PReLU', 'selu'], (0.001, 0.001), None
+2422af, 1000, (0, 0.05), (10, 256), (1, 3), (25, 500), ['LeakyReLU', 'ReLU', 'ELU', 'PReLU', 'selu'], (0.00, 0.00), None
+242eec, 1000, (0, 0.05), (10, 256), (1, 3), (25, 500), ['LeakyReLU', 'ReLU', 'ELU', 'PReLU', 'selu'], (0, 0.01), None
