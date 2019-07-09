@@ -4,7 +4,7 @@ import sys
 from datetime import datetime
 from mlp import *
 from tensorflow.keras.layers import ReLU, PReLU
-
+from tensorflow.keras.activations import selu
 # AGENTS = ['rainbow_agent_' + str(i) for i in range(1, 7)]
 # NUM_EPOCH = 150
 
@@ -174,7 +174,9 @@ def random_search(start, end, path_randparams, num_epoch=150,
     with open(path_randparams, 'rb') as f:
         list_hypers = pickle.load(f)
 
-    fn = '{}/{}_{}.csv'.format(path_out, start, end)
+    # Time-stamp for saving to avoid replacing existing file.
+    ts = hex(int((datetime.now()).timestamp()))[4:]
+    fn = '{}/{}_{}_{}.csv'.format(path_out, start, end, ts)
 
 
     with open(fn, 'w') as f:
