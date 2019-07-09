@@ -6,7 +6,6 @@ from mlp import *
 from tensorflow.keras.layers import ReLU, PReLU
 from tensorflow.keras.activations import selu
 # AGENTS = ['rainbow_agent_' + str(i) for i in range(1, 7)]
-# NUM_EPOCH = 150
 
 def mean_acc_agents(n_epoch, folds=(0, ),
                     agents=('rainbow_agent_1', 'rainbow_agent_6'),
@@ -71,7 +70,7 @@ def mean_acc_agents(n_epoch, folds=(0, ),
 
 def gen_rands(n=2000, range_lr=(0, 1), range_bs=(32, 256), range_nl=(1,3),
               range_ls=(25, 500), act_funcs=(LeakyReLU, ReLU, ELU, PReLU),
-              seed=1234):
+              range_decay=(0, 0.01), seed=1234):
     """ Generate random hyperparameters and save them in a .pkl file. A log
         file containing the arguments and the corresponding timestamp of the
         generated .pkl will be also created.
@@ -89,6 +88,8 @@ def gen_rands(n=2000, range_lr=(0, 1), range_bs=(32, 256), range_nl=(1,3),
             Range of layer sizes, a.k.a, # of neurons / layer (inclusive).
         - act_funcs: tuple, default (LeakyReLU, ReLU, ELU, PReLU)
             Activation functions to choose from for hidden layers.
+        - range_decay: tuple, default(0, 0.01)
+            Range of learning rate decay.
         - seed: int, default 1234
             Seed for Numpy RNG.
     """
@@ -96,6 +97,7 @@ def gen_rands(n=2000, range_lr=(0, 1), range_bs=(32, 256), range_nl=(1,3),
 
     # Generate hyperparams for each iteration.
     lr = np.random.uniform(range_lr[0], range_lr[1], size=n)
+    decay = np.random.uniform(range_decay[0], range_decay[1], size=n)
     bs = np.random.randint(range_bs[0], range_bs[1]+1, size=n)
     nl = np.random.randint(range_nl[0], range_nl[1]+1, size=n)
     hl_acts = np.random.choice(act_funcs, size=n)
@@ -112,6 +114,7 @@ def gen_rands(n=2000, range_lr=(0, 1), range_bs=(32, 256), range_nl=(1,3),
     dropout = [tup[0] for tup in tups]
     bNorm = [tup[1] for tup in tups]
 
+
     # List of hyperparams to be saved for all iterations
     list_hypers = []
 
@@ -123,7 +126,7 @@ def gen_rands(n=2000, range_lr=(0, 1), range_bs=(32, 256), range_nl=(1,3),
                   'batch_size': bs[i],
                   'hl_activations': cur_acts,
                   'hl_sizes': ls[i, :cur_nl],
-                  'decay': 0.001,
+                  'decay': decay[i],
                   'bNorm': bNorm[i],
                   'dropout': dropout[i],
                   'regularizer': reg[i]}
@@ -142,7 +145,7 @@ def gen_rands(n=2000, range_lr=(0, 1), range_bs=(32, 256), range_nl=(1,3),
     with open(log_fn, 'a') as f:
         if write_header:
             f.write('Timestamp, n, range_lr, range_bs, range_nl, range_ls, '
-                    'act_funcs, seed\n')
+                    'act_funcs, range_decay, seed\n')
 
         f.write(ts + ', ')
         f.write(str(n) + ', ')
@@ -151,10 +154,11 @@ def gen_rands(n=2000, range_lr=(0, 1), range_bs=(32, 256), range_nl=(1,3),
         f.write(str(range_nl) + ', ')
         f.write(str(range_ls) + ', ')
         f.write(str([x.__name__ for x in act_funcs]) + ', ')
+        f.write(str(range_decay) + ', ')
         f.write(str(seed) + '\n')
 
 
-def random_search(start, end, path_randparams, num_epoch=150,
+def random_search(start, end, num_epoch, path_randparams,
                   path_out='output/hyper_search'):
     """ Run models with hyperparams in given .pkl file and save the accuracy to
         @path_out.
@@ -209,8 +213,10 @@ def random_search(start, end, path_randparams, num_epoch=150,
             f.flush()
 
 if __name__ == '__main__':
-    if len(sys.argv) != 4:
+    if len(sys.argv) != 5:
         print('Must follow the following format:')
-        print('python3 hyper_search.py {start} {end} {path to randparams}')
+        print('python3 hyper_search.py '
+              '{start} {end} {epoch} {path to randparams}')
     else:
-        random_search(int(sys.argv[1]), int(sys.argv[2]), sys.argv[3])
+        random_search(int(sys.argv[1]), int(sys.argv[2]), int(sys.argv[3]),
+                      sys.argv[4])
