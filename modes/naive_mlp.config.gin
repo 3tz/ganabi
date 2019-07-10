@@ -1,0 +1,8 @@
+build_model.hypers = {'lr': 0.00015069384721492617,
+                      'batch_size': 32,
+                      'hl_activations': (@PReLU, ),
+                      'hl_sizes': (463, ),
+                      'decay': 0.00032165161252466467,
+                      'bNorm': False,
+                      'dropout': True,
+                      'regularizer': None}
