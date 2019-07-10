@@ -6,9 +6,9 @@ from mlp import *
 from tensorflow.keras.layers import ReLU, PReLU
 from tensorflow.keras.activations import selu
 # AGENTS = ['rainbow_agent_' + str(i) for i in range(1, 7)]
-
+AGENTS = ('rainbow_agent_1', 'rainbow_agent_6')
 def mean_acc_agents(n_epoch, folds=(0, ),
-                    agents=('rainbow_agent_1', 'rainbow_agent_6'),
+                    agents=AGENTS,
                     **hps):
     """ Return mean accuracy across all agents with input hyperparameters.
 
@@ -38,7 +38,7 @@ def mean_acc_agents(n_epoch, folds=(0, ),
 
         print(agent, ": Fold Accs:", end='', sep='', flush=True)
 
-        with open('pkl/cvout_15_{}_current.pkl'.format(agent), 'rb') as f:
+        with open(PATH+'pkl/cvout_15_{}_current.pkl'.format(agent), 'rb') as f:
             X, Y, masks, ind, cutoffs = pickle.load(f)
 
         # Use only the specified folds
@@ -135,11 +135,11 @@ def gen_rands(n=2000, range_lr=(0, 1), range_bs=(32, 256), range_nl=(1,3),
 
     # Time-stamp for saving to avoid replacing existing file.
     ts = hex(int((datetime.now()).timestamp()))[4:]
-    fn = 'pkl/randparams_{}_{}.pkl'.format(n, ts)
+    fn = PATH+'pkl/randparams_{}_{}.pkl'.format(n, ts)
     with open(fn, 'wb') as f:
         pickle.dump(list_hypers, f)
 
-    log_fn = 'pkl/logs_randparams.txt'
+    log_fn = PATH+'pkl/logs_randparams.txt'
     write_header = not os.path.exists(log_fn)
 
     with open(log_fn, 'a') as f:
@@ -159,7 +159,7 @@ def gen_rands(n=2000, range_lr=(0, 1), range_bs=(32, 256), range_nl=(1,3),
 
 
 def random_search(start, end, num_epoch, path_randparams,
-                  path_out='output/hyper_search'):
+                  path_out=PATH+'output/hyper_search'):
     """ Run models with hyperparams in given .pkl file and save the accuracy to
         @path_out.
 

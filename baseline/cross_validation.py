@@ -5,13 +5,14 @@ import random
 from datetime import datetime
 
 # Set path
-os.chdir(os.path.dirname(os.path.abspath(__file__)))
+# os.chdir(os.path.dirname(os.path.abspath(__file__)))
+PATH = os.path.dirname(os.path.abspath(__file__))+'/'
 
 SIZE_OBS_VEC = 658
 SIZE_ACT_VEC = 20
 
-def CV(pkl_path='../data/Hanabi-Full_2_6_150.pkl', agent='rainbow_agent_6',
-       save_pkl=True, shuffle=True, seed=1234):
+def CV(pkl_path=PATH+'../data/Hanabi-Full_2_6_150.pkl',
+       agent='rainbow_agent_6', save_pkl=True, shuffle=True, seed=1234):
     """ Generate [# of Games]/10 pairs of training and validation sets where
         training set in each pair has a size of 10. [# of Games] Must be a
         multiple of 10.
@@ -72,7 +73,7 @@ def CV(pkl_path='../data/Hanabi-Full_2_6_150.pkl', agent='rainbow_agent_6',
     if shuffle:
         random.seed(seed)
         random.shuffle(ind)
-        
+
     n_pairs = int(len(ind)/10)
     print('{} pairs will be created.'.format(n_pairs))
 
@@ -117,7 +118,7 @@ def CV(pkl_path='../data/Hanabi-Full_2_6_150.pkl', agent='rainbow_agent_6',
     if save_pkl:
         # Time-stamp for saving to avoid replacing existing file.
         ts = hex(int((datetime.now()).timestamp()))[4:]
-        fn = 'pkl/cvout_{}_{}_{}.pkl'.format(n_pairs, agent, ts)
+        fn = PATH+'pkl/cvout_{}_{}_{}.pkl'.format(n_pairs, agent, ts)
         with open(fn, 'wb') as f:
             pickle.dump((X, Y, masks, ind, cutoffs), f)
 

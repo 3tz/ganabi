@@ -60,11 +60,11 @@ def fetch_results(username, pc=60,
         - pc: int, default 60
             PC ID to be used to download the outputs. One is enough.
     """
-    cmd = ("scp -r {}@pc{}.cs.ucdavis.edu:{}/* "
-           "output/hyper_search/".format(username, pc, path_results))
+    cmd = ("scp -r {}@pc{}.cs.ucdavis.edu:{}/* " +
+           PATH + "output/hyper_search/".format(username, pc, path_results))
     system(cmd)
 
-def merge_results(path='output/hyper_search'):
+def merge_results(path=PATH+'output/hyper_search'):
     """ Merge the fetched results into one single .csv.
 
     Arguments:
@@ -75,7 +75,7 @@ def merge_results(path='output/hyper_search'):
     # Get a list of non-empty .csv
     files = list(filter(lambda f: os.path.getsize(f) > 0,
                         glob.glob(path + '/*.csv')))
-    path_merge = 'output/hs_merged.csv'
+    path_merge = PATH+'output/hs_merged.csv'
     # Merge to existing `hs_merged.csv`
     try:
         df = pd.read_csv(path_merge)
