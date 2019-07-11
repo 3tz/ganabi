@@ -7,8 +7,10 @@ from tensorflow.keras.layers import ReLU, PReLU
 from tensorflow.keras.activations import selu
 # AGENTS = ['rainbow_agent_' + str(i) for i in range(1, 7)]
 AGENTS = ('rainbow_agent_1', 'rainbow_agent_6')
-def mean_acc_agents(n_epoch, folds=(0, ),
-                    agents=AGENTS,
+PKL = 'pkl/cvout_15_{}_current.pkl'
+FOLDS = (0, )
+
+def mean_acc_agents(n_epoch, folds=FOLDS, agents=AGENTS, pkl_format=PKL,
                     **hps):
     """ Return mean accuracy across all agents with input hyperparameters.
 
@@ -19,6 +21,10 @@ def mean_acc_agents(n_epoch, folds=(0, ),
             Indices of folds to be used.
         - agents: tuple
             Names of the agents to be used to calculate the mean accuracy.
+        - pkl_format: str
+            Format of the naming of CV .pkl outputs. Brackets indicate position
+            of agent's name.
+            Ex: 'pkl/cvout_15_{}_current.pkl'
         - hps: any
             Hyperparameters to be passed into Mlp object. They should be all
             arguments in Mlp.__init__() besides X_tr, Y_tr, X_va, Y_va,
@@ -38,7 +44,7 @@ def mean_acc_agents(n_epoch, folds=(0, ),
 
         print(agent, ": Fold Accs:", end='', sep='', flush=True)
 
-        with open(PATH+'pkl/cvout_15_{}_current.pkl'.format(agent), 'rb') as f:
+        with open(PATH+pkl_format.format(agent), 'rb') as f:
             X, Y, masks, ind, cutoffs = pickle.load(f)
 
         # Use only the specified folds
