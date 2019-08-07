@@ -163,7 +163,6 @@ def gen_rands(n=2000, range_lr=(0, 1), range_bs=(32, 256), range_nl=(1,3),
         f.write(str(range_decay) + ', ')
         f.write(str(seed) + '\n')
 
-
 def random_search(start, end, num_epoch, path_randparams,
                   path_out=PATH+'output/hyper_search'):
     """ Run models with hyperparams in given .pkl file and save the accuracy to
