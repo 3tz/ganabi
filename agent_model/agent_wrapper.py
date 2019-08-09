@@ -26,17 +26,15 @@ class Agent(_Agent):
     pre_trained = keras.models.load_model('path_to_my_model.h5')
 
   def _parse_observation(self, current_player_observation):
-    legal_moves = current_player_observation['legal_moves_as_int']
-    legal_moves = format_legal_moves(legal_moves, self.config['num_moves'])
     observation_vector = np.array(current_player_observation['vectorized']) #FIXME: this may need to be cast as np.float64
-    return legal_moves, observation_vector
+    return observation_vector
 
   def act(self, observation):
     if observation['current_player_offset'] != 0:
       return None
 
-    legal_moves, observation_vector = self._parse_observation(observation)
-    action = self.agent._select_action(observation_vector, legal_moves)
-    action = observation['legal_moves'][observation['legal_moves_as_int'].index(action)]
+    observation_vector = self._parse_observation(observation)
+    #FIX ME
+    action = self.pre_trained.predict(observation_vector)
 
     return action
