@@ -21,9 +21,9 @@ class Agent(_Agent):
     observation_vector = self._parse_observation(obs)
     action_raw = self.pre_trained.predict(observation_vector)
     action = np.argmax(action_raw)
-    
+
     one_hot_action_vector = [0]*num_moves
     action_idx = obs['legal_moves_as_int'][obs['legal_moves'].index(action)]
     one_hot_action_vector[action_idx] = 1
 
-    return action
+    return one_hot_action_vector
