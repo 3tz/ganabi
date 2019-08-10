@@ -40,7 +40,6 @@ class DataCreator(object):
     def __init__(self, args):
         self.agent_object = import_agents(agent_path)
 
-
     def create_data(self):
         '''Create and return a list of games. Each game has the following structure:
             [ [[obs_0], [obs_1], ..., [obs_n]], [[act_0], [act_1], ..., [act_n]] ]

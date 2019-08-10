@@ -14,11 +14,16 @@ class Agent(_Agent):
     observation_vector = np.array(current_player_observation['vectorized']) #FIXME: this may need to be cast as np.float64
     return observation_vector
 
-  def act(self, observation):
+  def act(self, obs, num_moves):
     if observation['current_player_offset'] != 0:
       return None
 
-    observation_vector = self._parse_observation(observation)
-    action = self.pre_trained.predict(observation_vector)
+    observation_vector = self._parse_observation(obs)
+    action_raw = self.pre_trained.predict(observation_vector)
+    action = np.argmax(action_raw)
+    
+    one_hot_action_vector = [0]*num_moves
+    action_idx = obs['legal_moves_as_int'][obs['legal_moves'].index(action)]
+    one_hot_action_vector[action_idx] = 1
 
     return action
