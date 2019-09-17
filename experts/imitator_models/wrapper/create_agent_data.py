@@ -3,7 +3,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 
 # from utils import dir_utils, parse_args
 from collections import defaultdict
-from agent_model import agent_wrapper as model
+import agent_wrapper as model
 import pickle
 from hanabi_env import rl_env
 import gin
@@ -66,10 +66,3 @@ class DataCreator(object):
                         scores.append(self.environment.state.score())
                         break
         return scores
-
-def main():
-    data_creator = DataCreator(10, 'ex.h5', 'ex.h5')
-    rainbow_data = data_creator.create_data()
-
-if __name__ == '__main__':
-    main()
