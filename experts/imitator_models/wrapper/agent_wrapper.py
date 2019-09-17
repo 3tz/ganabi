@@ -2,14 +2,16 @@ import os, sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 
 import numpy as np
-from tensorflow import keras
 from experts.rainbow_models.run_experiment import format_legal_moves
+
+import keras
+from keras.layers import Input, Dense, ReLU, Dropout, Softmax
+from keras.models import Model, load_model
+from keras.optimizers import Adam
 
 def choose_legal_action(action_raw, obs):
   while True:
       action_idx = np.argmax(action_raw)
-      print(action_raw)
-      print(action_idx)
       if action_idx in obs['legal_moves_as_int']:
           action_leg_idx = obs['legal_moves_as_int'].index(action_idx)
           break
@@ -23,7 +25,19 @@ class Agent():
   """
   def __init__(self, path_to_my_model):
     """Initialize the agent."""
-    self.pre_trained = keras.models.load_model(path_to_my_model)
+    # self.pre_trained = keras.models.load_model(path_to_my_model)
+
+    input = Input(shape=(658, ))
+    h1 = Dropout(0.5)(ReLU()(Dense(1024, kernel_regularizer=None)(input)))
+    h2 = Dropout(0.5)(ReLU()(Dense(512, kernel_regularizer=None)(h1)))
+    h3 = Dropout(0.5)(ReLU()(Dense(256, kernel_regularizer=None)(h2)))
+    out = Softmax()(Dense(20)(h3))
+    m = Model(inputs=input, outputs=out)
+    m.load_weights(path_to_my_model)
+    m.compile(optimizer=Adam(lr=0), loss='categorical_crossentropy',
+    metrics=['accuracy'])
+
+    self.pre_trained = m
 
   def _parse_observation(self, current_player_observation):
     observation_vector = np.array(current_player_observation['vectorized']) #FIXME: this may need to be cast as np.float64
