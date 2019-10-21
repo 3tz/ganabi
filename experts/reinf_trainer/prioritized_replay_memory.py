@@ -29,10 +29,10 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-from experts.reinf_trainer.third_party.dopamine import sum_tree
-from experts.reinf_trainer import replay_memory
+from third_party.dopamine import sum_tree
 import gin.tf
 import numpy as np
+import replay_memory
 import tensorflow as tf
 
 DEFAULT_PRIORITY = 100.0

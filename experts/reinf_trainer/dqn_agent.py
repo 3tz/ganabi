@@ -31,7 +31,7 @@ import random
 
 import gin.tf
 import numpy as np
-from experts.reinf_trainer import replay_memory
+import replay_memory
 import tensorflow as tf
 
 
@@ -199,7 +199,7 @@ class DQNAgent(object):
 
     # Set up a session and initialize variables.
     self._sess = tf.Session(
-        '', graph=self.graph, config=tf.ConfigProto(allow_soft_placement=True))
+        '', config=tf.ConfigProto(allow_soft_placement=True))
     self._init_op = tf.global_variables_initializer()
     self._sess.run(self._init_op)
 
@@ -408,7 +408,6 @@ class DQNAgent(object):
       return np.random.choice(legal_action_indices[0])
     else:
       # Convert observation into a batch-based format.
-      #import pdb; pdb.set_trace()
       self.state[0, :, 0] = observation
 
       # Choose the action maximizing the q function for the current state.
@@ -523,6 +522,5 @@ class DQNAgent(object):
     for key in self.__dict__:
       if key in bundle_dictionary:
         self.__dict__[key] = bundle_dictionary[key]
-    #self._saver.restore(self._sess, tf.train.latest_checkpoint(checkpoint_dir))
-    self._saver.restore(self._sess, checkpoint_dir + '/tf_ckpt-' + str(iteration_number))
+    self._saver.restore(self._sess, tf.train.latest_checkpoint(checkpoint_dir))
     return True

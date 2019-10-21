@@ -27,12 +27,9 @@ from __future__ import print_function
 from absl import app
 from absl import flags
 
-import sys
-sys.path.append('/home/aronsar/ganabi')
-from experts.reinf_trainer.third_party.dopamine import logger
-import experts.reinf_trainer.run_experiment as run_experiment
-import os
-#os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
+from third_party.dopamine import logger
+
+import run_experiment
 
 FLAGS = flags.FLAGS
 

@@ -26,79 +26,28 @@ from __future__ import print_function
 
 import functools
 
-from experts.reinf_trainer import dqn_agent
-from experts.reinf_trainer import prioritized_replay_memory
+import dqn_agent
 import gin.tf
 import numpy as np
+import prioritized_replay_memory
 import tensorflow as tf
-from experts.reinf_trainer.mlp import Mlp
-from tensorflow.keras.layers import ReLU, Softmax
-
-hypers = {'lr': 0.00015,
-          'batch_size': 512,
-          'hl_activations': [ReLU, ReLU, ReLU],
-          'hl_sizes': [1024, 512, 256],
-          'decay': 0.,
-          'bNorm': False,
-          'dropout': True,
-          'regularizer': None}
-
-class PretrainedWeights(tf.keras.initializers.Initializer):
-    def __init__(self, modelpath, mode):
-        self.modelpath = modelpath
-        m = Mlp(
-                io_sizes=(658, 20),
-                out_activation=Softmax, 
-                loss='categorical_crossentropy',
-                metrics=['accuracy'], 
-                **hypers)       
-        m.construct_model()
-        m.model.load_weights(self.modelpath)
-        self.all_weights = m.model.get_weights()
-        if mode is "weights":
-            self.all_weights = [self.all_weights[i] for i in [0,2,4,6]]
-        elif mode is "biases":
-            self.all_weights = [self.all_weights[i] for i in [1,3,5,7]]
-        else:
-            raise ValueError('mode must be "weights" or "biases"')
-
-        self.weight_idx = -1
-        self.num_atoms = 0
-
-    def __call__(self, shape, dtype=None, partition_info=None):
-        self.weight_idx += 1
-        next_shape = np.shape(self.all_weights[self.weight_idx])
-        
-        if (np.asarray(shape) != np.asarray(next_shape)).all():
-            raise ValueError('Mismatch between shape of ' \
-                             + self.modelpath + \
-                             ' and hardcoded model at weight_idx ' \
-                             + str(self.weight_idx))
-        
-        import pdb; pdb.set_trace()
-        if self.num_atoms > 0:
-            return tf.initializers.constant(np.tile(self.all_weights[self.weight_idx],
-                           [self.num_atoms, 1]))
-        else:
-            return tf.initializers.constant(self.all_weights[self.weight_idx])
 
 
 slim = tf.contrib.slim
 
+
 @gin.configurable
 def rainbow_template(state,
                      num_actions,
-                     num_atoms=1,
+                     num_atoms=51,
                      layer_size=512,
-                     num_layers=2): # FIXME: Aron 3/14/19: changed from 1 to 2
+                     num_layers=1):
   r"""Builds a Rainbow Network mapping states to value distributions.
 
   Args:
     state: A `tf.placeholder` for the RL state.
     num_actions: int, number of actions that the RL agent can take.
-  import pdb; pdb.set_trace()
     num_atoms: int, number of atoms to approximate the distribution with.
-  import pdb; pdb.set_trace()
     layer_size: int, number of hidden units per layer.
     num_layers: int, number of hidden layers.
 
@@ -107,36 +56,6 @@ def rainbow_template(state,
       `\theta : \mathcal{X}\rightarrow\mathbb{R}^{|\mathcal{A}| \times N}`,
       where `N` is num_atoms.
   """
-  # initializing the weight initializer
-  weight_init = PretrainedWeights('./rainbow_best_818.h5', "weights")
-  bias_init = PretrainedWeights('./rainbow_best_818.h5', "biases")
-
-  # model definition
-  net = tf.cast(state, tf.float32)
-  net = tf.squeeze(net, axis=2)
-
-  for hl_size, act_fn in zip(hypers['hl_sizes'], hypers['hl_activations']):
-    import pdb; pdb.set_trace()
-    net = slim.fully_connected(net, hl_size, activation_fn=act_fn,
-                               weights_initializer=weight_init,
-                               biases_initializer=bias_init)
-    if hypers['dropout']:
-      net = slim.dropout(net, keep_prob=.5)
-
-  init.num_atoms = 51 # tile weights by num_atoms
-  net = slim.fully_connected(net, num_actions * num_atoms, actiavtion_fn=None,
-                             weights_initilizer=init,
-                             biases_initializer=init)
-
-  net = tf.reshape(net, [-1, num_atoms, num_actions])
-  net = tf.transpose(net, perm=[0, 2, 1])
-  return net
-
-  # what we've done here is initialize the network's weights with the
-  # pretrained values, and also we've tiled the last weight matrix num_atoms
-  # times to produce a network with the correct dimensions
-
-  '''
   weights_initializer = slim.variance_scaling_initializer(
       factor=1.0 / np.sqrt(3.0), mode='FAN_IN', uniform=True)
 
@@ -150,8 +69,6 @@ def rainbow_template(state,
                              weights_initializer=weights_initializer)
   net = tf.reshape(net, [-1, num_actions, num_atoms])
   return net
-  '''
-
 
 
 @gin.configurable
@@ -163,7 +80,7 @@ class RainbowAgent(dqn_agent.DQNAgent):
                num_actions=None,
                observation_size=None,
                num_players=None,
-               num_atoms=1,
+               num_atoms=51,
                vmax=25.,
                gamma=0.99,
                update_horizon=1,
@@ -197,35 +114,32 @@ class RainbowAgent(dqn_agent.DQNAgent):
       optimizer_epsilon: float, epsilon for Adam optimizer.
       tf_device: str, Tensorflow device on which to run computations.
     """
-    self.graph = tf.Graph()
+    # We need this because some tools convert round floats into ints.
+    vmax = float(vmax)
+    self.num_atoms = num_atoms
+    # Using -vmax as the minimum return is is wasteful, because all rewards are
+    # positive -- but does not unduly affect performance.
+    self.support = tf.linspace(-vmax, vmax, num_atoms)
+    self.learning_rate = learning_rate
+    self.optimizer_epsilon = optimizer_epsilon
 
-    with self.graph.as_default():
-      # We need this because some tools convert round floats into ints.
-      vmax = float(vmax)
-      self.num_atoms = num_atoms
-      # Using -vmax as the minimum return is is wasteful, because all rewards are
-      # positive -- but does not unduly affect performance.
-      self.support = tf.linspace(-vmax, vmax, num_atoms)
-      self.learning_rate = learning_rate
-      self.optimizer_epsilon = optimizer_epsilon
-
-      graph_template = functools.partial(rainbow_template, num_atoms=num_atoms)
-      super(RainbowAgent, self).__init__(
-          num_actions=num_actions,
-          observation_size=observation_size,
-          num_players=num_players,
-          gamma=gamma,
-          update_horizon=update_horizon,
-          min_replay_history=min_replay_history,
-          update_period=update_period,
-          target_update_period=target_update_period,
-          epsilon_train=epsilon_train,
-          epsilon_eval=epsilon_eval,
-          epsilon_decay_period=epsilon_decay_period,
-          graph_template=graph_template,
-          tf_device=tf_device)
-      tf.logging.info('\t learning_rate: %f', learning_rate)
-      tf.logging.info('\t optimizer_epsilon: %f', optimizer_epsilon)
+    graph_template = functools.partial(rainbow_template, num_atoms=num_atoms)
+    super(RainbowAgent, self).__init__(
+        num_actions=num_actions,
+        observation_size=observation_size,
+        num_players=num_players,
+        gamma=gamma,
+        update_horizon=update_horizon,
+        min_replay_history=min_replay_history,
+        update_period=update_period,
+        target_update_period=target_update_period,
+        epsilon_train=epsilon_train,
+        epsilon_eval=epsilon_eval,
+        epsilon_decay_period=epsilon_decay_period,
+        graph_template=graph_template,
+        tf_device=tf_device)
+    tf.logging.info('\t learning_rate: %f', learning_rate)
+    tf.logging.info('\t optimizer_epsilon: %f', optimizer_epsilon)
 
   def _build_replay_memory(self, use_staging):
     """Creates the replay memory used by the agent.
@@ -376,7 +290,7 @@ def project_distribution(supports, weights, target_support,
   """
   target_support_deltas = target_support[1:] - target_support[:-1]
   # delta_z = `\Delta z` in Eq7.
-  delta_z = target_support_deltas#[0]
+  delta_z = target_support_deltas[0]
   validate_deps = []
   supports.shape.assert_is_compatible_with(weights.shape)
   supports[0].shape.assert_is_compatible_with(target_support.shape)
