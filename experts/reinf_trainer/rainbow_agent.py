@@ -27,14 +27,33 @@ from __future__ import print_function
 import functools
 
 import dqn_agent
+import prioritized_replay_memory
 import gin.tf
 import numpy as np
-import prioritized_replay_memory
 import tensorflow as tf
-
+from mlp import Mlp
+from tensorflow.keras.layers import ReLU, Softmax
 
 slim = tf.contrib.slim
 
+PATH_TRAINED_MLP = 'rainbow_best_818.h5'
+hypers = {'lr': 0.00015,
+        'batch_size': 512,
+        'hl_activations': [ReLU, ReLU, ReLU],
+        'hl_sizes': [1024, 512, 256],
+        'decay': 0.,
+        'bNorm': False,
+        'dropout': True,
+        'regularizer': None}
+
+m = Mlp(
+      io_sizes=(658, 20),
+      out_activation=Softmax,
+      loss='categorical_crossentropy',
+      metrics=['accuracy'],
+      **hypers)
+m.construct_model(PATH_TRAINED_MLP, weights_only=True)
+weights = m.model.get_weights()
 
 @gin.configurable
 def rainbow_template(state,
@@ -62,11 +81,26 @@ def rainbow_template(state,
   net = tf.cast(state, tf.float32)
   net = tf.squeeze(net, axis=2)
 
-  for _ in range(num_layers):
-    net = slim.fully_connected(net, layer_size,
-                               activation_fn=tf.nn.relu)
-  net = slim.fully_connected(net, num_actions * num_atoms, activation_fn=None,
-                             weights_initializer=weights_initializer)
+  net = slim.fully_connected(net, 1024,
+            activation_fn=tf.nn.relu,
+            weights_initializer=tf.initializers.constant(weights[0]),
+            biases_initializer=tf.initializers.constant(weights[1]))
+  net = slim.dropout(net, keep_prob=.5)
+  net = slim.fully_connected(net, 512,
+            activation_fn=tf.nn.relu,
+            weights_initializer=tf.initializers.constant(weights[2]),
+            biases_initializer=tf.initializers.constant(weights[3]))
+  net = slim.dropout(net, keep_prob=.5)
+  net = slim.fully_connected(net, 256,
+            activation_fn=tf.nn.relu,
+            weights_initializer=tf.initializers.constant(weights[4]),
+            biases_initializer=tf.initializers.constant(weights[5]))
+  net = slim.dropout(net, keep_prob=.5)
+
+  net = slim.fully_connected(net, num_actions * num_atoms,
+            activation_fn=None, #tf.nn.softmax,
+            weights_initializer=tf.initializers.constant(weights[6]),
+            biases_initializer=tf.initializers.constant(weights[7]))
   net = tf.reshape(net, [-1, num_actions, num_atoms])
   return net
 
