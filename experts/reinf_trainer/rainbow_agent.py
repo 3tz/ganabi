@@ -88,17 +88,14 @@ def rainbow_template(state,
             activation_fn=tf.nn.relu,
             weights_initializer=tf.initializers.constant(weights[0]),
             biases_initializer=tf.initializers.constant(weights[1]))
-  net = slim.dropout(net, keep_prob=.5)
   net = slim.fully_connected(net, 512,
             activation_fn=tf.nn.relu,
             weights_initializer=tf.initializers.constant(weights[2]),
             biases_initializer=tf.initializers.constant(weights[3]))
-  net = slim.dropout(net, keep_prob=.5)
   net = slim.fully_connected(net, 256,#256,
             activation_fn=tf.nn.relu,
             weights_initializer=tf.initializers.constant(weights[4]),
             biases_initializer=tf.initializers.constant(weights[5]))
-  net = slim.dropout(net, keep_prob=.5)
 
   net = slim.fully_connected(net, num_actions * num_atoms,
             activation_fn=None,# tf.nn.softmax, #None, #
