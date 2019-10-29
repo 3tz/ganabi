@@ -36,7 +36,9 @@ from tensorflow.keras.layers import ReLU, Softmax
 
 slim = tf.contrib.slim
 
-PATH_TRAINED_MLP = 'rainbow_best_818.h5'
+# PATH_TRAINED_MLP = 'rainbow_best_818.h5'
+# PATH_TRAINED_MLP = 'rainbow_best_818_orig.h5'#'rainbow-17.h5'
+PATH_TRAINED_MLP = 'rainbow-17.h5'
 hypers = {'lr': 0.00015,
         'batch_size': 512,
         'hl_activations': [ReLU, ReLU, ReLU],
@@ -75,9 +77,10 @@ def rainbow_template(state,
       `\theta : \mathcal{X}\rightarrow\mathbb{R}^{|\mathcal{A}| \times N}`,
       where `N` is num_atoms.
   """
-  weights_initializer = slim.variance_scaling_initializer(
-      factor=1.0 / np.sqrt(3.0), mode='FAN_IN', uniform=True)
 
+  # weights_initializer = slim.variance_scaling_initializer(
+  #     factor=1.0 / np.sqrt(3.0), mode='FAN_IN', uniform=True)
+  #import pdb; pdb.set_trace()
   net = tf.cast(state, tf.float32)
   net = tf.squeeze(net, axis=2)
 
@@ -91,19 +94,34 @@ def rainbow_template(state,
             weights_initializer=tf.initializers.constant(weights[2]),
             biases_initializer=tf.initializers.constant(weights[3]))
   net = slim.dropout(net, keep_prob=.5)
-  net = slim.fully_connected(net, 256,
+  net = slim.fully_connected(net, 256,#256,
             activation_fn=tf.nn.relu,
             weights_initializer=tf.initializers.constant(weights[4]),
             biases_initializer=tf.initializers.constant(weights[5]))
   net = slim.dropout(net, keep_prob=.5)
 
   net = slim.fully_connected(net, num_actions * num_atoms,
-            activation_fn=None, #tf.nn.softmax,
-            weights_initializer=tf.initializers.constant(weights[6]),
-            biases_initializer=tf.initializers.constant(weights[7]))
+            activation_fn=None,# tf.nn.softmax, #None, #
+            weights_initializer=tf.initializers.constant(np.tile(weights[6], [1, num_atoms])),
+            biases_initializer=tf.initializers.constant(np.tile(weights[7], num_atoms)))
+            # weights_initializer=tf.initializers.constant(weights[6]),
+            # biases_initializer=tf.initializers.constant(weights[7]))
   net = tf.reshape(net, [-1, num_actions, num_atoms])
+  #import pdb; pdb.set_trace()
   return net
 
+  # weights_initializer = slim.variance_scaling_initializer(factor=1.0 / np.sqrt(3.0), mode='FAN_IN', uniform=True)
+  #
+  # net = tf.cast(state, tf.float32)
+  # net = tf.squeeze(net, axis=2)
+  #
+  # for _ in range(num_layers):
+  #   net = slim.fully_connected(net, layer_size,
+  #                              activation_fn=tf.nn.relu)
+  # net = slim.fully_connected(net, num_actions * num_atoms, activation_fn=None,
+  #                            weights_initializer=weights_initializer)
+  # net = tf.reshape(net, [-1, num_actions, num_atoms])
+  # return net
 
 @gin.configurable
 class RainbowAgent(dqn_agent.DQNAgent):
