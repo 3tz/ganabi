@@ -28,6 +28,7 @@ from __future__ import division
 from __future__ import print_function
 
 import time
+import warnings
 
 from third_party.dopamine import checkpointer
 from third_party.dopamine import iteration_statistics
@@ -146,12 +147,13 @@ def create_obs_stacker(environment, history_size=4):
 
 
 @gin.configurable
-def create_agent(environment, obs_stacker, agent_type='DQN'):
+def create_agent(environment, obs_stacker, weights, agent_type='DQN'):
   """Creates the Hanabi agent.
 
   Args:
     environment: The environment.
     obs_stacker: Observation stacker object.
+    weights: list, list of weights that connect each layer.
     agent_type: str, type of agent to construct.
 
   Returns:
@@ -168,7 +170,8 @@ def create_agent(environment, obs_stacker, agent_type='DQN'):
     return rainbow_agent.RainbowAgent(
         observation_size=obs_stacker.observation_size(),
         num_actions=environment.num_moves(),
-        num_players=environment.players)
+        num_players=environment.players,
+        weights=weights)
   else:
     raise ValueError('Expected valid agent_type, got {}'.format(agent_type))
 
@@ -484,10 +487,10 @@ def run_experiment(agent,
                    log_every_n=1,
                    checkpoint_every_n=1):
   """Runs a full experiment, spread over multiple iterations."""
-  #print('Beginning training...')
+  print('Beginning training...')
   if num_iterations <= start_iteration:
-    tf.logging.warning('num_iterations (%d) < start_iteration(%d)',
-                       num_iterations, start_iteration)
+    msg = 'num_iterations (%d) < start_iteration(%d)' % (num_iterations, start_iteration)
+    warnings.warn(msg)
     return
 
   for iteration in range(start_iteration, num_iterations):

@@ -24,10 +24,14 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 import sys
-sys.path.append('/data1/mtimzh/ganabi')
+import os
+
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__)))))
+
 from absl import app
 from absl import flags
-
+from mlp import Mlp
+from tensorflow.keras.layers import ReLU, Softmax
 from third_party.dopamine import logger
 
 import run_experiment
@@ -57,6 +61,9 @@ flags.DEFINE_string('logging_dir', '',
 flags.DEFINE_string('logging_file_prefix', 'log',
                     'Prefix to use for the log files.')
 
+flags.DEFINE_string('weights', None,
+                    'Path to where the h5 file that contains the weights')
+
 
 def launch_experiment():
   """Launches the experiment.
@@ -71,16 +78,36 @@ def launch_experiment():
     Checkpointer object.
   - Run the experiment.
   """
-  if FLAGS.base_dir == None:
-    raise ValueError('--base_dir is None: please provide a path for '
-                     'logs and checkpoints.')
+  if FLAGS.base_dir == None or FLAGS.weights == None:
+    raise ValueError('--base_dir or --weights is None: please provide a path for '
+                     'logs, checkpoints, and h5 file for weights.')
+
+
+  PATH_TRAINED_MLP = FLAGS.weights
+  hypers = {'lr': 0.00015,
+          'batch_size': 512,
+          'hl_activations': [ReLU, ReLU, ReLU],
+          'hl_sizes': [1024, 512, 256],
+          'decay': 0.,
+          'bNorm': False,
+          'dropout': True,
+          'regularizer': None}
+
+  m = Mlp(
+        io_sizes=(658, 20),
+        out_activation=Softmax,
+        loss='categorical_crossentropy',
+        metrics=['accuracy'],
+        **hypers)
+  m.construct_model(PATH_TRAINED_MLP, weights_only=True)
+  weights = m.model.get_weights()
 
   run_experiment.load_gin_configs(FLAGS.gin_files, FLAGS.gin_bindings)
   experiment_logger = logger.Logger('{}/logs'.format(FLAGS.base_dir))
 
   environment = run_experiment.create_environment()
   obs_stacker = run_experiment.create_obs_stacker(environment)
-  agent = run_experiment.create_agent(environment, obs_stacker)
+  agent = run_experiment.create_agent(environment, obs_stacker, weights)
 
   checkpoint_dir = '{}/checkpoints'.format(FLAGS.base_dir)
   start_iteration, experiment_checkpointer = (

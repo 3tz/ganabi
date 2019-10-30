@@ -31,38 +31,14 @@ import prioritized_replay_memory
 import gin.tf
 import numpy as np
 import tensorflow as tf
-from mlp import Mlp
-from tensorflow.keras.layers import ReLU, Softmax
 
 slim = tf.contrib.slim
-
-# PATH_TRAINED_MLP = 'rainbow_best_818.h5'
-# PATH_TRAINED_MLP = 'rainbow_best_818_orig.h5'#'rainbow-17.h5'
-PATH_TRAINED_MLP = 'rainbow-17.h5'
-hypers = {'lr': 0.00015,
-        'batch_size': 512,
-        'hl_activations': [ReLU, ReLU, ReLU],
-        'hl_sizes': [1024, 512, 256],
-        'decay': 0.,
-        'bNorm': False,
-        'dropout': True,
-        'regularizer': None}
-
-m = Mlp(
-      io_sizes=(658, 20),
-      out_activation=Softmax,
-      loss='categorical_crossentropy',
-      metrics=['accuracy'],
-      **hypers)
-m.construct_model(PATH_TRAINED_MLP, weights_only=True)
-weights = m.model.get_weights()
 
 @gin.configurable
 def rainbow_template(state,
                      num_actions,
                      num_atoms=51,
-                     layer_size=512,
-                     num_layers=1):
+                     weights=None):
   r"""Builds a Rainbow Network mapping states to value distributions.
 
   Args:
@@ -78,9 +54,6 @@ def rainbow_template(state,
       where `N` is num_atoms.
   """
 
-  # weights_initializer = slim.variance_scaling_initializer(
-  #     factor=1.0 / np.sqrt(3.0), mode='FAN_IN', uniform=True)
-  #import pdb; pdb.set_trace()
   net = tf.cast(state, tf.float32)
   net = tf.squeeze(net, axis=2)
 
@@ -104,21 +77,8 @@ def rainbow_template(state,
             # weights_initializer=tf.initializers.constant(weights[6]),
             # biases_initializer=tf.initializers.constant(weights[7]))
   net = tf.reshape(net, [-1, num_actions, num_atoms])
-  #import pdb; pdb.set_trace()
-  return net
 
-  # weights_initializer = slim.variance_scaling_initializer(factor=1.0 / np.sqrt(3.0), mode='FAN_IN', uniform=True)
-  #
-  # net = tf.cast(state, tf.float32)
-  # net = tf.squeeze(net, axis=2)
-  #
-  # for _ in range(num_layers):
-  #   net = slim.fully_connected(net, layer_size,
-  #                              activation_fn=tf.nn.relu)
-  # net = slim.fully_connected(net, num_actions * num_atoms, activation_fn=None,
-  #                            weights_initializer=weights_initializer)
-  # net = tf.reshape(net, [-1, num_actions, num_atoms])
-  # return net
+  return net
 
 @gin.configurable
 class RainbowAgent(dqn_agent.DQNAgent):
@@ -129,6 +89,7 @@ class RainbowAgent(dqn_agent.DQNAgent):
                num_actions=None,
                observation_size=None,
                num_players=None,
+               weights=None,
                num_atoms=51,
                vmax=25.,
                gamma=0.99,
@@ -148,6 +109,7 @@ class RainbowAgent(dqn_agent.DQNAgent):
       num_actions: int, number of actions the agent can take at any state.
       observation_size: int, size of observation vector.
       num_players: int, number of players playing this game.
+      weights: list, list of weights that connect each layer.
       num_atoms: Int, the number of buckets for the value function distribution.
       vmax: float, maximum return predicted by a value distribution.
       gamma: float, discount factor as commonly used in the RL literature.
@@ -172,7 +134,8 @@ class RainbowAgent(dqn_agent.DQNAgent):
     self.learning_rate = learning_rate
     self.optimizer_epsilon = optimizer_epsilon
 
-    graph_template = functools.partial(rainbow_template, num_atoms=num_atoms)
+    graph_template = functools.partial(
+        rainbow_template, num_atoms=num_atoms, weights=weights)
     super(RainbowAgent, self).__init__(
         num_actions=num_actions,
         observation_size=observation_size,

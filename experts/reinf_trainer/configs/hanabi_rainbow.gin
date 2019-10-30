@@ -24,7 +24,7 @@ RainbowAgent.epsilon_train = 0.0
 RainbowAgent.epsilon_eval = 0.0
 RainbowAgent.epsilon_decay_period = 1000 # agent steps
 RainbowAgent.tf_device = '/gpu:0'  # '/cpu:*' use for non-GPU version
-WrappedReplayMemory.replay_capacity = 50000 
+WrappedReplayMemory.replay_capacity = 50000
 
 run_experiment.training_steps = 10000
 run_experiment.num_iterations = 10005
@@ -37,6 +37,3 @@ create_environment.num_players = 2
 
 create_agent.agent_type = 'Rainbow'
 create_obs_stacker.history_size = 1
-
-rainbow_template.layer_size=512
-rainbow_template.num_layers=2
