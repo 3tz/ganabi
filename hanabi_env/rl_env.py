@@ -353,7 +353,6 @@ class HanabiEnv(Environment):
     elif isinstance(action, int):
       # Convert int action into a Hanabi move.
       action = self.game.get_move(action)
-      print(action)
     else:
       raise ValueError("Expected action as dict or int, got: {}".format(
           action))
@@ -396,7 +395,7 @@ class HanabiEnv(Environment):
          - The next possible card; None is returned if @deck == None,
     """
     if deck is None:
-      return 
+        return
     i = 0
     while i < len(deck):
       yield deck[i]
