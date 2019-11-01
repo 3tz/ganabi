@@ -223,7 +223,7 @@ def initialize_checkpointing(agent, experiment_logger, checkpoint_dir,
       assert 'current_iteration' in dqn_dictionary
       experiment_logger.data = dqn_dictionary['logs']
       start_iteration = dqn_dictionary['current_iteration'] + 1
-      #print('Reloaded checkpoint and will start from iteration %d' % start_iteration)
+      print('Reloaded checkpoint and will start from iteration %d' % start_iteration)
 
   return start_iteration, experiment_checkpointer
 
@@ -334,7 +334,7 @@ def run_one_episode(agent, environment, obs_stacker):
 
   agent.end_episode(reward_since_last_action)
 
-  # print('EPISODE: %d %g' % (step_number, total_reward))
+  print('EPISODE: %d %g' % (step_number, total_reward))
   return step_number, total_reward
 
 
@@ -406,11 +406,10 @@ def run_one_iteration(agent, environment, obs_stacker,
       run_one_phase(agent, environment, obs_stacker, training_steps, statistics,
                     'train'))
   time_delta = time.time() - start_time
-  #print('Average training steps per second: %.2f' % (number_steps / time_delta))
+  print('Average training steps per second: %.2f' % (number_steps / time_delta))
 
   average_return = sum_returns / num_episodes
-  #print('Average per episode return: %.2f' % average_return)
-  print('%.2f,' % average_return)
+  print('Average per episode return: %.2f' % average_return)
   statistics.append({'average_return': average_return})
 
   # Also run an evaluation phase if desired.
@@ -427,7 +426,7 @@ def run_one_iteration(agent, environment, obs_stacker,
         'eval_episode_lengths': eval_episode_length,
         'eval_episode_returns': eval_episode_return
     })
-    #print('Average eval. episode length: %.2f  Return: %.2f' % (eval_episode_length, eval_episode_return))
+    print('Average eval. episode length: %.2f  Return: %.2f' % (eval_episode_length, eval_episode_return))
   else:
     statistics.append({
         'eval_episode_lengths': -1,
@@ -497,12 +496,12 @@ def run_experiment(agent,
     start_time = time.time()
     statistics = run_one_iteration(agent, environment, obs_stacker, iteration,
                                    training_steps)
-    #print('Iteration %d took %d seconds' % (iteration, time.time() - start_time))
+    print('Iteration %d took %d seconds' % (iteration, time.time() - start_time))
     start_time = time.time()
     log_experiment(experiment_logger, iteration, statistics,
                    logging_file_prefix, log_every_n)
-    #print('Logging iteration %d took %d seconds' % (iteration, time.time() - start_time))
+    print('Logging iteration %d took %d seconds' % (iteration, time.time() - start_time))
     start_time = time.time()
     checkpoint_experiment(experiment_checkpointer, agent, experiment_logger,
                           iteration, checkpoint_dir, checkpoint_every_n)
-    #print('Checkpointing iteration %d took %d seconds' % (iteration, time.time() - start_time))
+    print('Checkpointing iteration %d took %d seconds' % (iteration, time.time() - start_time))

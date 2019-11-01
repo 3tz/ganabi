@@ -26,7 +26,11 @@ from __future__ import print_function
 import sys
 import os
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__)))))
+PATH_FILE = os.path.realpath(__file__)
+PATH_REINF = os.path.dirname(PATH_FILE)
+PATH_EXPERT = os.path.dirname(PATH_REINF)
+PATH_GANABI = os.path.dirname(PATH_EXPERT)
+sys.path.append(PATH_GANABI)
 
 from absl import app
 from absl import flags
