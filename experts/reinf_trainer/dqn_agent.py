@@ -34,7 +34,7 @@ import numpy as np
 import replay_memory
 import tensorflow as tf
 
-
+MAX_TO_KEEP = 10**8
 slim = tf.contrib.slim
 
 Transition = collections.namedtuple(
@@ -203,7 +203,7 @@ class DQNAgent(object):
     self._init_op = tf.global_variables_initializer()
     self._sess.run(self._init_op)
 
-    self._saver = tf.train.Saver(max_to_keep=3)
+    self._saver = tf.train.Saver(max_to_keep=MAX_TO_KEEP)
 
     # This keeps tracks of the observed transitions during play, for each
     # player.
