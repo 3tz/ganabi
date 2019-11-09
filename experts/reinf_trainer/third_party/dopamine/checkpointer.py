@@ -51,7 +51,7 @@ import os
 import pickle
 import tensorflow as tf
 
-CHECKPOINT_DURATION = 2
+CHECKPOINT_DURATION = 10**8
 
 
 def get_latest_checkpoint_number(base_directory):

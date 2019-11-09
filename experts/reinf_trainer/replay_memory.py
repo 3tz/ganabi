@@ -42,7 +42,7 @@ import tensorflow as tf
 
 
 # This constant determines how many iterations a checkpoint is kept for.
-CHECKPOINT_DURATION = 3
+CHECKPOINT_DURATION = 10**8
 MAX_SAMPLE_ATTEMPTS = 1000000
 
 
