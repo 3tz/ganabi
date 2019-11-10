@@ -3,11 +3,9 @@ import os, sys
 import numpy as np
 import glob
 
-from experts.reinf_trainer.wrapper.create_agent_data import *
+from create_agent_data import *
 
-def run_game(n=100, pattern='reinf_checkpoints/*/checkpoints'):
-    agents = glob.glob(pattern)
-    agents.sort()
+def run_game(agents, n=100):
     for ag in agents:
         print(ag)
 
@@ -20,7 +18,7 @@ def run_game(n=100, pattern='reinf_checkpoints/*/checkpoints'):
         scores_list = []
         avg_list = []
         for a1 in agents:
-            print('vs', a1)
+            print 'vs', a1
             scores = DataCreator(num_games, a0, a1).create_data()
             scores_list.append(scores)
             avg_list.append(sum(scores) * 1.0 / n)
