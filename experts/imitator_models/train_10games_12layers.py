@@ -210,16 +210,17 @@ def main(args):
 
     # Callbacks: save best & latest models.
     callbacks = [
-        # ModelCheckpoint(
-        #     os.path.join(PATH_DIR_SAVE, 'best.h5'), monitor='val_loss',
-        #     verbose=1, save_best_only=True, save_weights_only=True,
-        #     mode='auto', period=1
-        # ),
         ModelCheckpoint(
-            os.path.join(PATH_DIR_CKPT, '{epoch:02d}-{val_accuracy:.2f}.h5'),
-            monitor='val_loss', verbose=1, save_best_only=False,
-            save_weights_only=True, mode='auto', period=1
+            # os.path.join(PATH_DIR_SAVE, 'best.h5'), monitor='val_loss',
+            os.path.join(PATH_DIR_CKPT, 'best.h5'), monitor='val_loss',
+            verbose=1, save_best_only=True, save_weights_only=True,
+            mode='auto', period=1
         ),
+        # ModelCheckpoint(
+        #     os.path.join(PATH_DIR_CKPT, '{epoch:02d}-{val_accuracy:.2f}.h5'),
+        #     monitor='val_loss', verbose=1, save_best_only=False,
+        #     save_weights_only=True, mode='auto', period=1
+        # ),
         # EarlyStopping(monitor='val_loss', mode='min', verbose=1, patience=5),
         CSVLogger(os.path.join(PATH_DIR_SAVE, 'training.log'), append=True)
         ]
