@@ -1,6 +1,7 @@
 import warnings
 warnings.filterwarnings("ignore", category=FutureWarning)
 
+import random
 import argparse
 import csv
 import os
@@ -10,7 +11,6 @@ from mlp import *
 from gen_hdf5 import *
 from tensorflow.keras.callbacks import ModelCheckpoint, CSVLogger
 from tensorflow.keras.layers import ReLU
-import h5py_cache
 
 class bc:
     HEADER = '\033[95m'
@@ -25,19 +25,25 @@ class bc:
 
 # multiprocessing.set_start_method('spawn', force=True)
 
-def model_exists(path_m, dir_agent):
+def model_exists(path_m, dir_agent, trial):
     """ Check if model exists or is corrupted.
 
     Model Structure should look like this:
 
-    @path
-        |-- @dir_agent
-        |       |-- best.h5
-        |       |-- training.log
-        |       |__ ckpts
-        |           |-- 01-0.42.h5
-        |           |-- 02-0.49.h5
-       ...         ...
+    @path_m
+      |== @dir_agent
+      |     |--  0
+      |     |    |-- training.log
+      |     |    |__ ckpts
+      |     |        |-- 01-0.42.h5
+      |     |        |-- 02-0.49.h5
+      |     |       ...
+      |     |--  @epoch
+      |     |    |-- training.log
+      |     |    |__ ckpts
+      |     |        |-- 01-0.33.h5
+      |     |        |-- 02-0.38.h5
+     ...   ...      ...
 
     Arguments:
         - path_m: str
@@ -56,7 +62,7 @@ def model_exists(path_m, dir_agent):
     Raise: ValueError if model directory is corrupted.
     """
 
-    PATH_DIR_SAVE = os.path.join(path_m, dir_agent)
+    PATH_DIR_SAVE = os.path.join(path_m, dir_agent, trial)
     PATH_DIR_CKPT = os.path.join(PATH_DIR_SAVE, 'ckpts')
     PATH_LOG = os.path.join(PATH_DIR_SAVE, 'training.log')
     PATH_BEST = os.path.join(PATH_DIR_SAVE, 'best.h5')
@@ -106,6 +112,26 @@ def model_exists(path_m, dir_agent):
         return True, int(epochs[-1]) + 1
 
 def main(args):
+    """ Training the 12-layer MLP model on 10 games.
+
+    Model Structure should look like this:
+
+    @path
+      |== @dir_agent
+      |     |--  0
+      |     |    |-- training.log
+      |     |    |__ ckpts
+      |     |        |-- 01-0.42.h5
+      |     |        |-- 02-0.49.h5
+      |     |       ...
+      |     |--  1
+      |     |    |-- training.log
+      |     |    |__ ckpts
+      |     |        |-- 01-0.33.h5
+      |     |        |-- 02-0.38.h5
+     ...   ...      ...
+
+    """
     if tf.test.is_gpu_available():
         print(bc.OKGREEN + bc.BOLD + '#'*9 + ' USING GPU ' + '#'*9 + bc.ENDC)
     else:
@@ -115,35 +141,40 @@ def main(args):
     tokens = args.p.split('/')
     if args.p[-1] == '/':
         assert(tokens.pop() == '')
-    dir_agent = '-'.join(tokens[-1].split('_')[:-3]) + '.save'
+    dir_agent = '-'.join(tokens[-1].split('_')[:-3])
     print(dir_agent)
 
-    # run this first to avoid failing after huge overhead
-    model_ok, initial_epoch = model_exists(args.m, dir_agent)
+    # 10 games as the training set
+    RATIO = 10 / 25000
 
-    PATH_DIR_SAVE = os.path.join(args.m, dir_agent)
+    # run this first to avoid failing after huge overhead
+    model_ok, initial_epoch = model_exists(args.m, dir_agent, str(args.trial_num))
+
+    PATH_DIR_SAVE = os.path.join(args.m, dir_agent, str(args.trial_num))
     PATH_DIR_CKPT = os.path.join(PATH_DIR_SAVE, 'ckpts')
 
     n_epoch = args.epochs
+
+    hl_sizes = [2048, 2048, 1024, 1024, 512, 512, 256, 256, 128, 128, 64, 64]
+    hl_acts = [LeakyReLU] * len(hl_sizes)
+
     hypers = {'lr': 0.00015,
-              'batch_size': 512,
-              'hl_activations': [ReLU, ReLU, ReLU],
-              'hl_sizes': [1024, 512, 256],
+              'batch_size': 32,
+              'hl_activations': hl_acts,
+              'hl_sizes': hl_sizes,
               'decay': 0.,
-              'bNorm': False,
-              'dropout': True,
+              'bNorm': True,
+              'dropout': False,
               'regularizer': None}
 
-    # checking input data format.
-    if args.p.split('.')[-1] in ['hdf5', 'HDF5']:
-        f = h5py_cache.File(p, 'r', chunk_cache_mem_size=1*1024**3, swmr=True)
-        gen_tr = Gen4h5(f['X_tr'], f['Y_tr'], hypers['batch_size'], False)
-        gen_va = Gen4h5(f['X_va'], f['Y_va'], hypers['batch_size'], False)
-    else:
-        X, Y, mask = CV(args.p)
-        gen_tr = DataGenerator(X[mask], Y[mask], hypers['batch_size'])
-        gen_va = DataGenerator(X[~mask], Y[~mask], 1000)
+    # randomly choose one of the N 25000 data dirs
+    dirs = [
+        f for f in os.listdir(args.p) if os.path.isdir(os.path.join(args.p, f))]
+    picked = random.choice(dirs)
 
+    X, Y, mask = CV(os.path.join(args.p, picked), RATIO, seed=None)
+    gen_tr = DataGenerator(X[mask], Y[mask], hypers['batch_size'])
+    gen_va = DataGenerator(X[~mask], Y[~mask], 1000)
 
     os.makedirs(PATH_DIR_CKPT, exist_ok=True)
 
@@ -202,6 +233,8 @@ if __name__ == '__main__':
     parser.add_argument('--q', type=int, default=3, help=msg_h)
     msg_h = 'Number of training epochs. Default 50'
     parser.add_argument('--epochs', type=int, default=50, help=msg_h)
+    msg_h = 'Trial number. Defaule 0'
+    parser.add_argument('--trial_num', type=int, default=0, help=msg_h)
     args = parser.parse_args()
 
     main(args)
