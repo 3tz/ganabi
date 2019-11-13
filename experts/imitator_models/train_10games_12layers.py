@@ -185,7 +185,7 @@ def main(args):
     hl_sizes = [2048, 2048, 1024, 1024, 512, 512, 256, 256, 128, 128, 64, 64]
     hl_acts = [LeakyReLU] * len(hl_sizes)
 
-    hypers = {'lr': 0.00015,
+    hypers = {'lr': 0.0001,
               'batch_size': 32,
               'hl_activations': hl_acts,
               'hl_sizes': hl_sizes,
