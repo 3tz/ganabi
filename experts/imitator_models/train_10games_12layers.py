@@ -201,7 +201,12 @@ def main(args):
 
     X, Y, mask = CV(os.path.join(args.p, picked), RATIO, seed=seed)
     gen_tr = DataGenerator(X[mask], Y[mask], hypers['batch_size'])
-    gen_va = DataGenerator(X[~mask], Y[~mask], 1000)
+
+    # Use only 10 times the number of observations as validation
+    n_samples = X[mask].shape[0] * 10
+    idx = np.random.choice(X[~mask].shape[0], n_samples, replace=False)
+    val_bs = int(n_samples * 0.1)
+    gen_va = DataGenerator(X[~mask][idx, :], Y[~mask][idx, :], val_bs)
 
     # Callbacks: save best & latest models.
     callbacks = [
