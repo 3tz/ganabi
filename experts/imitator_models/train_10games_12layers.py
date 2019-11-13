@@ -9,7 +9,7 @@ import tensorflow as tf
 # import multiprocessing
 from mlp import *
 from gen_hdf5 import *
-from tensorflow.keras.callbacks import ModelCheckpoint, CSVLogger
+from tensorflow.keras.callbacks import ModelCheckpoint, CSVLogger, EarlyStopping
 from tensorflow.keras.layers import ReLU
 
 class bc:
@@ -65,7 +65,7 @@ def model_exists(path_m, dir_agent, trial):
     PATH_DIR_SAVE = os.path.join(path_m, dir_agent, trial)
     PATH_DIR_CKPT = os.path.join(PATH_DIR_SAVE, 'ckpts')
     PATH_LOG = os.path.join(PATH_DIR_SAVE, 'training.log')
-    PATH_BEST = os.path.join(PATH_DIR_SAVE, 'best.h5')
+    # PATH_BEST = os.path.join(PATH_DIR_SAVE, 'best.h5')
 
     # Directory does not exist or is empty
     if not os.path.exists(PATH_DIR_SAVE) or len(os.listdir(PATH_DIR_SAVE)) == 0:
@@ -74,12 +74,13 @@ def model_exists(path_m, dir_agent, trial):
         # Missing any one of the files
         missing_files = (
             not os.path.exists(PATH_LOG)
-            or not os.path.exists(PATH_BEST)
+            # or not os.path.exists(PATH_BEST)
             or not os.path.exists(PATH_DIR_CKPT)
             or len(os.listdir(PATH_DIR_CKPT)) == 0
         )
         if missing_files:
-            msg = 'Corruption: missing training.log, best.h5, or ckpts'
+            # msg = 'Corruption: missing training.log, best.h5, or ckpts'
+            msg = 'Corruption: missing training.log or ckpts'
             raise ValueError(msg)
 
         # check log file
@@ -170,7 +171,8 @@ def main(args):
     # randomly choose one of the N 25000 data dirs
     dirs = [
         f for f in os.listdir(args.p) if os.path.isdir(os.path.join(args.p, f))]
-    picked = random.choice(dirs)
+    # picked = random.choice(dirs)
+    picked = '10'
 
     X, Y, mask = CV(os.path.join(args.p, picked), RATIO, seed=None)
     gen_tr = DataGenerator(X[mask], Y[mask], hypers['batch_size'])
@@ -180,16 +182,17 @@ def main(args):
 
     # Callbacks: save best & latest models.
     callbacks = [
-        ModelCheckpoint(
-            os.path.join(PATH_DIR_SAVE, 'best.h5'), monitor='val_loss',
-            verbose=1, save_best_only=True, save_weights_only=True,
-            mode='auto', period=1
-        ),
+        # ModelCheckpoint(
+        #     os.path.join(PATH_DIR_SAVE, 'best.h5'), monitor='val_loss',
+        #     verbose=1, save_best_only=True, save_weights_only=True,
+        #     mode='auto', period=1
+        # ),
         ModelCheckpoint(
             os.path.join(PATH_DIR_CKPT, '{epoch:02d}-{val_accuracy:.2f}.h5'),
             monitor='val_loss', verbose=1, save_best_only=False,
             save_weights_only=True, mode='auto', period=1
         ),
+        EarlyStopping(monitor='val_loss', mode='min', verbose=1, patience=20),
         CSVLogger(os.path.join(PATH_DIR_SAVE, 'training.log'), append=True)
         ]
 
