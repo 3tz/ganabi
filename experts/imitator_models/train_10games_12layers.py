@@ -220,7 +220,7 @@ def main(args):
             monitor='val_loss', verbose=1, save_best_only=False,
             save_weights_only=True, mode='auto', period=1
         ),
-        EarlyStopping(monitor='val_loss', mode='min', verbose=1, patience=5),
+        # EarlyStopping(monitor='val_loss', mode='min', verbose=1, patience=5),
         CSVLogger(os.path.join(PATH_DIR_SAVE, 'training.log'), append=True)
         ]
 
