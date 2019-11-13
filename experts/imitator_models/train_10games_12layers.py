@@ -1,6 +1,7 @@
 import warnings
 warnings.filterwarnings("ignore", category=FutureWarning)
 
+import sys
 import random
 import argparse
 import csv
@@ -33,12 +34,14 @@ def model_exists(path_m, dir_agent, trial):
     @path_m
       |== @dir_agent
       |     |--  0
+      |     |    |-- seed.txt
       |     |    |-- training.log
       |     |    |__ ckpts
       |     |        |-- 01-0.42.h5
       |     |        |-- 02-0.49.h5
       |     |       ...
-      |     |--  @epoch
+      |     |--  @trial
+      |     |    |-- seed.txt
       |     |    |-- training.log
       |     |    |__ ckpts
       |     |        |-- 01-0.33.h5
@@ -120,12 +123,14 @@ def main(args):
     @path
       |== @dir_agent
       |     |--  0
+      |     |    |-- seed.txt
       |     |    |-- training.log
       |     |    |__ ckpts
       |     |        |-- 01-0.42.h5
       |     |        |-- 02-0.49.h5
       |     |       ...
       |     |--  1
+      |     |    |-- seed.txt
       |     |    |-- training.log
       |     |    |__ ckpts
       |     |        |-- 01-0.33.h5
@@ -149,10 +154,31 @@ def main(args):
     RATIO = 10 / 25000
 
     # run this first to avoid failing after huge overhead
-    model_ok, initial_epoch = model_exists(args.m, dir_agent, str(args.trial_num))
+    model_ok, initial_epoch = model_exists(
+        args.m, dir_agent, str(args.trial_num))
 
     PATH_DIR_SAVE = os.path.join(args.m, dir_agent, str(args.trial_num))
     PATH_DIR_CKPT = os.path.join(PATH_DIR_SAVE, 'ckpts')
+    os.makedirs(PATH_DIR_CKPT, exist_ok=True)
+
+    PATH_SEED = os.path.join(PATH_DIR_SAVE, 'seed.txt')
+
+    if model_ok:
+        # loading in the seed used
+        with open(PATH_SEED, 'r') as f:
+            reader = csv.reader(f)
+            cur_row = next(reader)
+        seed = int(cur_row[0])
+        print("seed found:", seed)
+    else:
+        with open(PATH_SEED, 'w+') as f:
+            writer = csv.writer(f)
+            seed = random.randint(0, 2**32-1)
+            writer.writerow([seed])
+        print("Seed created:", seed)
+
+    random.seed(seed)
+
 
     n_epoch = args.epochs
 
@@ -171,14 +197,11 @@ def main(args):
     # randomly choose one of the N 25000 data dirs
     dirs = [
         f for f in os.listdir(args.p) if os.path.isdir(os.path.join(args.p, f))]
-    # picked = random.choice(dirs)
-    picked = '10'
+    picked = random.choice(dirs)
 
-    X, Y, mask = CV(os.path.join(args.p, picked), RATIO, seed=None)
+    X, Y, mask = CV(os.path.join(args.p, picked), RATIO, seed=seed)
     gen_tr = DataGenerator(X[mask], Y[mask], hypers['batch_size'])
     gen_va = DataGenerator(X[~mask], Y[~mask], 1000)
-
-    os.makedirs(PATH_DIR_CKPT, exist_ok=True)
 
     # Callbacks: save best & latest models.
     callbacks = [
@@ -192,7 +215,7 @@ def main(args):
             monitor='val_loss', verbose=1, save_best_only=False,
             save_weights_only=True, mode='auto', period=1
         ),
-        EarlyStopping(monitor='val_loss', mode='min', verbose=1, patience=20),
+        EarlyStopping(monitor='val_loss', mode='min', verbose=1, patience=5),
         CSVLogger(os.path.join(PATH_DIR_SAVE, 'training.log'), append=True)
         ]
 
