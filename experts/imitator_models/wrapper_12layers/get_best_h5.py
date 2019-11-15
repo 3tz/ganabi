@@ -17,7 +17,7 @@ def main(dir_models='/Volumes/ext_ssd/jlab/data_imi_10games/saved_models', dir_o
     """
     random.seed(1234)
 
-    subdirs = [f for f in os.listdir(dir_models) if os.path.isdir(f)]
+    subdirs = [f for f in os.listdir(dir_models) if os.path.isdir(os.path.join(dir_models, f))]
 
     path_best_models = []
     for subdir in subdirs:
