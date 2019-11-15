@@ -5,7 +5,7 @@ import numpy as np
 from experts.rainbow_models.run_experiment import format_legal_moves
 
 import keras
-from keras.layers import Input, Dense, ReLU, Dropout, Softmax
+from keras.layers import Input, Dense, ReLU, Dropout, Softmax, BatchNormalization
 from keras.models import Model, load_model
 from keras.optimizers import Adam
 
@@ -28,10 +28,19 @@ class Agent():
     # self.pre_trained = keras.models.load_model(path_to_my_model)
 
     input = Input(shape=(658, ))
-    h1 = Dropout(0.5)(ReLU()(Dense(1024, kernel_regularizer=None)(input)))
-    h2 = Dropout(0.5)(ReLU()(Dense(512, kernel_regularizer=None)(h1)))
-    h3 = Dropout(0.5)(ReLU()(Dense(256, kernel_regularizer=None)(h2)))
-    out = Softmax()(Dense(20)(h3))
+    h1 = BatchNormalization()(Dense(2048)(input))
+    h2 = BatchNormalization()(Dense(2048)(h1))
+    h3 = BatchNormalization()(Dense(1024)(h2))
+    h4 = BatchNormalization()(Dense(1024)(h3))
+    h5 = BatchNormalization()(Dense(512)(h4))
+    h6 = BatchNormalization()(Dense(512)(h5))
+    h7 = BatchNormalization()(Dense(256)(h6))
+    h8 = BatchNormalization()(Dense(256)(h7))
+    h9 = BatchNormalization()(Dense(128)(h8))
+    h10 = BatchNormalization()(Dense(128)(h9))
+    h11 = BatchNormalization()(Dense(64)(h10))
+    h12 = BatchNormalization()(Dense(64)(h11))
+    out = Softmax()(Dense(20)(h12))
     m = Model(inputs=input, outputs=out)
     m.load_weights(path_to_my_model)
     m.compile(optimizer=Adam(lr=0), loss='categorical_crossentropy',
