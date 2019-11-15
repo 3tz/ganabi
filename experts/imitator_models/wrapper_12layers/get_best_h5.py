@@ -3,8 +3,9 @@ import numpy as np
 import os
 import glob
 import shutil
+import random
 
-def main(dir_models='/Volumes/ext_ssd/jlab/saved_models', dir_out='best_models'):
+def main(dir_models='/Volumes/ext_ssd/jlab/data_imi_10games/saved_models', dir_out='best_models'):
     """ Search through all saved checkpoints for all agents and find the models
         with the best validation loss for all agents.
 
@@ -14,28 +15,19 @@ def main(dir_models='/Volumes/ext_ssd/jlab/saved_models', dir_out='best_models')
         - dir_out: str
             The directory where the best models will be saved under
     """
-    subdirs = os.listdir(dir_models)
+    random.seed(1234)
+
+    subdirs = [f for f in os.listdir(dir_models) if os.path.isdir(f)]
 
     path_best_models = []
     for subdir in subdirs:
-        PATH_SUB = os.path.join(dir_models, subdir)
-        PATH_LOG = os.path.join(PATH_SUB, 'training.log')
-        PATH_CKPTS = os.path.join(PATH_SUB, 'ckpts')
+        trial_num = str(random.randint(0,49))
 
-        mtx = np.genfromtxt(PATH_LOG, delimiter=',')[1:,:] # ignore heading
-        best_epoch = np.argmin(mtx[:, 4]) + 1 # min loss. ckpts indexed from 1
-        best_h5 = '{:02d}-*.h5'.format(best_epoch)
-        best_h5 = os.path.join(PATH_CKPTS, best_h5)
-        best_h5 = glob.glob(best_h5)[0]
-        path_best_models.append(best_h5)
+        PATH_SUB = os.path.join(dir_models, subdir, trial_num)
+        PATH_BEST = os.path.join(PATH_SUB, 'ckpts/best.h5')
 
-    for path in path_best_models:
-        name = path.split('/')[-3].split('.')[0]
-        epoch = path.split('/')[-1].split('-')[0] + '.h5'
-        out = '-'.join([name, epoch])
-        shutil.copyfile(path, os.path.join(dir_out, out))
-        # print(path, os.path.join(dir_out, out))
-
+        # print(PATH_BEST, os.path.join(dir_out, subdir + '_best.h5'))
+        shutil.copyfile(PATH_BEST, os.path.join(dir_out, subdir + '_best.h5'))
 
 if __name__ == '__main__':
     main()
